@@ -9,6 +9,8 @@ export default function Navbar() {
         </Link>
         <div className="space-x-4">
           <Link to="/" className="text-white">Home</Link>
+          <Link to="/services" className="text-white">Services</Link>
+          <Link to="/contact" className="text-white">Contact</Link>
           <Link to="/auth" className="text-white">Login</Link>
         </div>
       </div>
