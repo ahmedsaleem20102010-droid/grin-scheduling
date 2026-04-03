@@ -53,7 +53,6 @@ export default function Contact() {
     setLoading(true);
 
     // ✅ Save to Supabase
-    // @ts-ignore - Ignore type error if contacts table types are not generated yet
     const { error } = await supabase.from("contacts").insert([
       {
         name: form.name,
@@ -69,26 +68,20 @@ export default function Contact() {
     }
 
     try {
-      // ✅ Call backend API
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // ✅ Call Supabase Edge Function
+      const { error: functionError } = await supabase.functions.invoke("send-contact-email", {
+        body: {
           name: form.name,
           email: form.email,
           message: form.message,
-        }),
+        },
       });
 
-      if (!res.ok) {
-        alert("Email failed");
-        setLoading(false);
-        return;
+      if (functionError) {
+        throw functionError;
       }
 
-      alert("Message sent successfully!");
+      toast.success("Message sent successfully!");
       setSubmitted(true);
       setForm({
         name: "",
@@ -97,7 +90,7 @@ export default function Contact() {
       });
     } catch (err) {
       console.error("Email sending failed:", err);
-      alert("Message saved, but email notification failed.");
+      toast.error("Message saved, but email notification failed.");
       setSubmitted(true);
     } finally {
       setLoading(false);
