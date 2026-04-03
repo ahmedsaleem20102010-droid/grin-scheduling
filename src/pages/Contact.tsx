@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, Phone, Mail, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const CONTACT_INFO = [
   {
@@ -46,15 +48,35 @@ export default function Contact() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
     setLoading(true);
-    // Simulate async submit — replace with real API call when ready
-    setTimeout(() => {
+    
+    try {
+      // @ts-ignore - Ignore type error if contacts table types are not generated yet
+      const { error, status } = await supabase.from('contacts').insert([
+        {
+          name: form.name,
+          email: form.email,
+          message: form.message
+        }
+      ]);
+
+      // Check if an OK status comes back from Supabase (typically 201 for insert)
+      if (!error && status >= 200 && status < 300) {
+        toast.success("Message sent successfully!");
+        setSubmitted(true);
+      } else {
+        toast.error(`Failed to send message: ${error?.message || 'Unknown database error'}`);
+        console.error("Supabase insert error:", error, "Status:", status);
+      }
+    } catch (error: any) {
+      console.error("An unexpected error occurred:", error);
+      toast.error(`Failed to send message: ${error?.message || 'Please try again.'}`);
+    } finally {
       setLoading(false);
-      setSubmitted(true);
-    }, 900);
+    }
   };
 
   return (
