@@ -50,30 +50,55 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) return;
     setLoading(true);
-    
+
+    // ✅ Save to Supabase
+    // @ts-ignore - Ignore type error if contacts table types are not generated yet
+    const { error } = await supabase.from("contacts").insert([
+      {
+        name: form.name,
+        email: form.email,
+        message: form.message,
+      },
+    ]);
+
+    if (error) {
+      alert("Database error");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // @ts-ignore - Ignore type error if contacts table types are not generated yet
-      const { error, status } = await supabase.from('contacts').insert([
-        {
+      // ✅ Call backend API
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           name: form.name,
           email: form.email,
-          message: form.message
-        }
-      ]);
+          message: form.message,
+        }),
+      });
 
-      // Check if an OK status comes back from Supabase (typically 201 for insert)
-      if (!error && status >= 200 && status < 300) {
-        toast.success("Message sent successfully!");
-        setSubmitted(true);
-      } else {
-        toast.error(`Failed to send message: ${error?.message || 'Unknown database error'}`);
-        console.error("Supabase insert error:", error, "Status:", status);
+      if (!res.ok) {
+        alert("Email failed");
+        setLoading(false);
+        return;
       }
-    } catch (error: any) {
-      console.error("An unexpected error occurred:", error);
-      toast.error(`Failed to send message: ${error?.message || 'Please try again.'}`);
+
+      alert("Message sent successfully!");
+      setSubmitted(true);
+      setForm({
+        name: "",
+        email: "",
+        message: "",
+      });
+    } catch (err) {
+      console.error("Email sending failed:", err);
+      alert("Message saved, but email notification failed.");
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
